@@ -1,0 +1,212 @@
+# Swedish Identifiers — LLM/Agent Reference
+
+> TypeScript library for validating Swedish identifiers.
+> GitHub: https://github.com/shabtu/identifiers
+> License: MIT
+
+## Purpose
+
+This library validates the following Swedish identifiers. Each function returns
+a typed result object with a `valid: boolean` field plus parsed components.
+All source is in `src/`. Tests are in `tests/`.
+
+---
+
+## Validators
+
+### `validatePersonnummer(input: string)`
+
+Validates a Swedish personal identity number (personnummer) or coordination
+number (samordningsnummer). Also detects gender and computes age.
+
+**Accepted formats**
+- `YYMMDD-XXXX`   — 10 digits with hyphen
+- `YYMMDD+XXXX`   — 10 digits with plus (born more than 100 years ago)
+- `YYYYMMDDXXXX`  — 12 digits, no separator
+
+**Algorithm**
+Luhn mod-10 on the 10-digit form (YYMMDDXXXC). Multiply digits 1–9 alternately
+by 2 and 1 starting from the left; if product > 9 subtract 9; sum must be
+divisible by 10 including the check digit C.
+
+**Samordningsnummer detection**
+Day digits 61–91 indicate a coordination number. The real birth day is `day - 60`.
+
+**Gender**
+The 3rd of the 3-digit birth number (digits 7–9 in 10-digit form) determines
+gender: odd = male, even = female.
+
+**Century inference**
+Without a 4-digit year, century is inferred from current year. The `+`
+separator forces the previous century (born > 100 years ago).
+
+**Return type**
+```
+{
+  valid: boolean
+  type: "personnummer" | "samordningsnummer" | null
+  normalized: string | null        // e.g. "19811228-9874"
+  century: string | null           // e.g. "19"
+  year: string | null              // e.g. "1981"
+  month: string | null             // e.g. "12"
+  day: string | null               // real day, e.g. "28"
+  birth_number: string | null      // e.g. "987"
+  check_digit: string | null       // e.g. "4"
+  age: number | null
+  is_male: boolean | null
+}
+```
+
+**Official spec**
+- https://www.skatteverket.se/servicelankar/otherlanguages/inenglish/individualsandemployees/livinginsweden/personalidentitynumberandcoordinationnumber.4.2cf1b5cd163796a5c8b4295.html
+- https://docs.swedenconnect.se/technical-framework/mirror/skv/skv709-8.pdf
+
+---
+
+### `validateOrgnummer(input: string)`
+
+Validates a Swedish organisation number (organisationsnummer).
+
+**Accepted formats**
+- `XXXXXX-XXXX`   — 10 digits with hyphen
+- `XXXXXXXXXX`    — 10 digits, no separator
+
+**Rules**
+- 3rd digit of the 10-digit number must be >= 2
+- Luhn mod-10 on all 10 digits
+
+**Entity type** is determined by the 1st digit:
+- 1 = State authority
+- 2 = State/municipality/region
+- 3 = Foreign company
+- 5 = Aktiebolag (AB)
+- 6 = Enkelt bolag / Enskild firma
+- 7 = Ekonomisk förening / Bostadsrättsförening
+- 8 = Ideell förening / Stiftelse
+- 9 = Handelsbolag / Kommanditbolag
+
+**Return type**
+```
+{
+  valid: boolean
+  normalized: string | null        // e.g. "556614-3185"
+  entity_type: string | null
+}
+```
+
+**Official spec**
+- https://foretagsinfo.bolagsverket.se/sok-foretagsinformation-web/
+
+---
+
+### `validateBankgiro(input: string)`
+
+Validates a Swedish bankgiro number (BG).
+
+**Accepted formats**
+- `NNN-NNNN`   — 7 digits
+- `NNNN-NNNN`  — 8 digits
+
+**Algorithm**: Luhn mod-10 on all digits.
+
+**Return type**
+```
+{
+  valid: boolean
+  normalized: string | null        // e.g. "5050-1055"
+}
+```
+
+**Official spec**
+- https://www.bankgirot.se/en/services/incoming-payments/bankgiro-number/
+
+---
+
+### `validatePlusgiro(input: string)`
+
+Validates a Swedish plusgiro number (PG).
+
+**Accepted formats**
+- `N-N` to `NNNNNNN-N` — 2 to 8 total digits with hyphen separator before check digit
+
+**Algorithm**: Luhn mod-10 on all digits.
+
+**Return type**
+```
+{
+  valid: boolean
+  normalized: string | null        // e.g. "12345-6"
+}
+```
+
+---
+
+### `validateKontonummer(input: string)`
+
+Validates a Swedish bank account number by checking the clearing number range.
+
+**Format**: `CCCC XXXXXXXXXX` (4-digit clearing + up to 10-digit account)
+
+**Validation**: Looks up the 4-digit clearing number against ~50 known Swedish
+bank ranges. Does not perform checksum validation (bank-specific rules vary).
+
+**Return type**
+```
+{
+  valid: boolean
+  clearing: string | null          // e.g. "5000"
+  account: string | null
+  bank: string | null              // e.g. "SEB"
+}
+```
+
+---
+
+### `validateIBAN(input: string)`
+
+Validates an IBAN (International Bank Account Number) per ISO 13616.
+Works for all countries, not only Sweden (SE IBANs are 24 characters).
+
+**Algorithm**
+1. Strip spaces, uppercase
+2. Move first 4 chars to end: `BBAN + country + check_digits`
+3. Replace letters with numbers: A=10, B=11, … Z=35
+4. Compute mod 97 of the resulting integer — must equal 1
+
+**Return type**
+```
+{
+  valid: boolean
+  normalized: string | null        // spaced every 4 chars, e.g. "SE45 5000 0000 0583 9825 7466"
+  country: string | null           // ISO 3166-1 alpha-2, e.g. "SE"
+  check_digits: string | null      // e.g. "45"
+  bban: string | null              // Basic Bank Account Number
+}
+```
+
+**Official spec**
+- ISO 13616 / https://www.iban.com/structure
+
+---
+
+## Shared utility
+
+### `luhn(digits: string): boolean`
+
+Returns true if the string of digits passes a Luhn mod-10 check.
+Multiply alternating digits (from left) by 2 and 1; if product > 9 subtract 9;
+sum all values; valid if sum % 10 === 0.
+
+---
+
+## Source files
+
+- `src/luhn.ts`          — shared Luhn algorithm
+- `src/personnummer.ts`  — personnummer + samordningsnummer
+- `src/orgnummer.ts`     — organisationsnummer
+- `src/bankgiro.ts`      — bankgiro
+- `src/plusgiro.ts`      — plusgiro
+- `src/kontonummer.ts`   — bank account / clearing numbers
+- `src/iban.ts`          — IBAN (all countries)
+- `src/index.ts`         — re-exports all validators and types
+- `tests/`               — Jest test suites for each validator
