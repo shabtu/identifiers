@@ -1,0 +1,36 @@
+app = "swedish-identifiers-api"
+primary_region = "arn"  # Stockholm
+
+[build]
+
+[env]
+  PORT = "3000"
+  DATABASE_PATH = "/data/keys.db"
+
+[mounts]
+  source = "identifier_data"
+  destination = "/data"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 3000
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "requests"
+    hard_limit = 200
+    soft_limit = 150
+
+  [[services.http_checks]]
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "5s"
+    path = "/"
