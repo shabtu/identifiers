@@ -1,7 +1,8 @@
 app = "swedish-identifiers-api"
-primary_region = "arn"  # Stockholm
+primary_region = "arn"
 
 [build]
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = "3000"

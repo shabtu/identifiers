@@ -19,9 +19,7 @@ COPY api/package*.json ./
 RUN npm ci --omit=dev
 COPY --from=api-builder /app/dist ./dist
 COPY --from=lib-builder /lib/dist /dist
-
 RUN mkdir -p /app/data
 VOLUME ["/app/data"]
-
 EXPOSE 3000
 CMD ["node", "dist/server.js"]
