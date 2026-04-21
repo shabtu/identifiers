@@ -1,4 +1,4 @@
-app = "swedish-identifiers-api"
+app = "sv-identifiers-api"
 primary_region = "arn"
 
 [build]
