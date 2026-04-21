@@ -8,7 +8,7 @@ export interface OrgnummerResult {
 
 // Swedish entity type codes (1st digit of orgnummer)
 const ENTITY_TYPES: Record<number, string> = {
-  1: "State authority",
+  1: "Dödsbon (estate)",
   2: "State/municipality/region",
   3: "Foreign company",
   5: "Aktiebolag (AB)",
