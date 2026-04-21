@@ -76,7 +76,7 @@ Validates a Swedish organisation number (organisationsnummer).
 - Luhn mod-10 on all 10 digits
 
 **Entity type** is determined by the 1st digit:
-- 1 = State authority
+- 1 = Dödsbon (estate)
 - 2 = State/municipality/region
 - 3 = Foreign company
 - 5 = Aktiebolag (AB)
