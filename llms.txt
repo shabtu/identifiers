@@ -143,20 +143,38 @@ Validates a Swedish plusgiro number (PG).
 
 ### `validateKontonummer(input: string)`
 
-Validates a Swedish bank account number by checking the clearing number range.
+Validates a Swedish bank account number per the Bankgirot specification
+"Bankernas kontonummer" (2024-02-22).
 
-**Format**: `CCCC XXXXXXXXXX` (4-digit clearing + up to 10-digit account)
+**Format**: `CCCC-XXXXXXXXX` — 4-digit clearing number + account digits (no fixed length).
+Swedbank 8xxx accounts may be entered with a 5-digit prefix.
 
-**Validation**: Looks up the 4-digit clearing number against ~50 known Swedish
-bank ranges. Does not perform checksum validation (bank-specific rules vary).
+**Validation**: Two account types, three checksum variants.
+
+- **Type 1** (clearing IS part of checksum, 7-digit account, mod-11):
+  - Comment 1: mod-11 on clearing digits 2–4 + account padded to 7 → 10 digits total
+  - Comment 2: mod-11 on all 4 clearing digits + account padded to 7 → 11 digits total
+- **Type 2** (clearing NOT part of checksum):
+  - Comment 1 & 3: mod-10 (Luhn) on account padded to 10 digits
+  - Comment 2: mod-11 on account padded to 9 digits (Handelsbanken only)
+
+**Mod-11 algorithm**: From right, multiply by weights 1,2,3,...,10 (repeating).
+Sum must be divisible by 11.
+
+**Supported banks include**: Nordea, SEB, Swedbank, Handelsbanken, Danske Bank,
+Länsförsäkringar, IKANO, ICA Banken, Klarna, Avanza, Nordnet, Skandiabanken,
+DNB, Marginalen, SBAB, Resurs Bank, JAK, Ekobanken, Lunar Bank, and ~30 more.
+
+**Official spec**:
+https://www.bankgirot.se/globalassets/dokument/anvandarmanualer/bankernaskontonummeruppbyggnad_anvandarmanual_sv.pdf
 
 **Return type**
 ```
 {
   valid: boolean
-  clearing: string | null          // e.g. "5000"
+  clearing: string | null          // e.g. "6000"
   account: string | null
-  bank: string | null              // e.g. "SEB"
+  bank: string | null              // e.g. "Handelsbanken"
 }
 ```
 
